@@ -6,6 +6,7 @@ from .models import User, PhoneVerification
 from .serializers import PhoneNumberSerializer, CodeVerificationSerializer
 from django.utils import timezone
 from rest_framework.permissions import AllowAny
+from rest_framework.authtoken.models import Token
 
 class SendVerificationCodeView(APIView):
     permission_classes = [AllowAny]  
@@ -48,14 +49,16 @@ class VerifyCodeView(APIView):
             # Get or create user
             user, created = User.objects.get_or_create(phone_number=phone_number)
             
-            # Mark user as verified and log them in
+            # Mark user as verified
             user.is_verified = True
             user.save()
-            login(request, user)
+            
+            # Create or get token
+            token, _ = Token.objects.get_or_create(user=user)
             
             return Response({
                 'status': 'Authenticated',
-                'sessionid': request.session.session_key,
+                'token': token.key,
                 'user_id': user.id
             }, status=status.HTTP_200_OK)
             
